@@ -5,10 +5,14 @@ var KEY_ENTER = 13,
     KEY_DOWN = 40,
     
     canvas = null,
+    iBody = new Image(),
+    iFood = new Image(),
+    aEat = new Audio(),
+    aDie = new Audio(),
     ctx = null,
     lastPress = null,
     pause = true,
-    player = null,
+    body = new Array(),
     food = null,
     gameover = false,
     score = 0,
@@ -54,6 +58,11 @@ function act(){
         if (gameover) {
             reset();
         }
+        // Move Body
+        for (i = body.length - 1; i > 0; i -= 1) {
+            body[i].x = body[i - 1].x;
+            body[i].y = body[i - 1].y;
+        }
         // Change Direction
         if (lastPress == KEY_UP) {
             dir = 0;
@@ -70,35 +79,47 @@ function act(){
 
         // Move Rect
         if (dir == 0) {
-            player.y -= 10;
+            body[0].y -= 10;
         }
         if (dir == 1) {
-            player.x += 10;
+            body[0].x += 10;
         }
         if (dir == 2) {
-            player.y += 10;
+            body[0].y += 10;
         }
         if (dir == 3) {
-            player.x -= 10;
+            body[0].x -= 10;
         }
+       
 
         // Out Screen
-        if (player.x > canvas.width) {
-            player.x = 0;
+        if (body[0].x > canvas.width) {
+            body[0].x = 0;
         }
-        if (player.y > canvas.height) {
-            player.y = 0;
+        if (body[0].y > canvas.height) {
+            body[0].y = 0;
         }
-        if (player.x < 0) {
-            player.x = canvas.width;
+        if (body[0].x < 0) {
+            body[0].x = canvas.width;
         }
-        if (player.y < 0) {
-            player.y = canvas.height;
+        if (body[0].y < 0) {
+            body[0].y = canvas.height;
         }
-        if (player.intersects(food)) {
+        if (body[0].intersects(food)) {
+            aEat.play();
+            // body.push(new Rectangle(food.x, food.y, 10, 10));
+            body.push(new Rectangle(body[body.length-1].x, body[body.length-1].y, 10, 10));
             score += 1;
             food.x = random(canvas.width / 10 - 1) * 10;
             food.y = random(canvas.height / 10 - 1) * 10;
+        }
+        // Body Intersects
+        for (i = 2, l = body.length; i < l; i += 1) {
+            if (body[0].intersects(body[i])) {
+                aDie.play();
+                gameover = true;
+                pause = true;
+            }
         }
         // Wall Intersects
         for (i = 0, l = wall.length; i < l; i += 1) {
@@ -107,9 +128,10 @@ function act(){
                 food.y = random(canvas.height / 10 - 1) * 10;
             }
 
-            if (player.intersects(wall[i])) {
+            if (body[0].intersects(wall[i])) {
+                aDie.play();
                 pause = true;
-                gameover = !gameover;
+                gameover = true;
             }
         }
     }
@@ -125,13 +147,13 @@ function paint(ctx) {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw player
-    ctx.fillStyle = '#0f0';
-    player.fill(ctx);
+    // Draw body[0]
+    for (i = 0, l = body.length; i < l; i += 1) {
+        ctx.drawImage(iBody, body[i].x, body[i].y);
+    }
     
     // Draw food
-    ctx.fillStyle = '#f00';
-    food.fill(ctx);
+    ctx.drawImage(iFood, food.x, food.y);
 
     // Debug last key pressed
     ctx.fillStyle = '#fff';
@@ -170,8 +192,18 @@ function run() {
 function init() {
     canvas = document.getElementById('canvas');
     ctx = canvas.getContext('2d');
-    player = new Rectangle(40, 40, 10, 10);
+    iBody.src = 'assets/body.png';
+    iFood.src = 'assets/fruit.png';
+    aEat.src = 'assets/chomp.oga';
+    aDie.src = 'assets/dies.oga';
+
     food = new Rectangle(80, 80, 10, 10);
+    body.length = 0;
+    body.push(new Rectangle(40, 40, 10, 10));
+    body.push(new Rectangle(0, 0, 10, 10));
+    body.push(new Rectangle(0, 0, 10, 10));
+
+
 
     wall.push(new Rectangle(100, 50, 10, 10));
     wall.push(new Rectangle(100, 100, 10, 10));
@@ -184,8 +216,14 @@ function init() {
 function reset() {
     score = 0;
     dir = 1;
-    player.x = 40;
-    player.y = 40;
+
+    body.length = 0;
+    body.push(new Rectangle(40, 40, 10, 10));
+    body.push(new Rectangle(0, 0, 10, 10));
+    body.push(new Rectangle(0, 0, 10, 10));
+
+    body[0].x = canvas.width/2;
+    body[0].y = canvas.height/2;
     food.x = random(canvas.width / 10 - 1) * 10;
     food.y = random(canvas.height / 10 - 1) * 10;
     gameover = false;
