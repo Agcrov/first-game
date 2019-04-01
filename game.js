@@ -8,15 +8,43 @@ var KEY_ENTER = 13,
     ctx = null,
     lastPress = null,
     pause = true,
-    x = 50,
-    y = 50,
+    player = null,
+    food = null,
+    score = 0,
     dir = 0;
-
 
 document.addEventListener('keydown', evt => {
     lastPress = evt.which;
 }, false);
 
+function random(max) {
+    return Math.floor(Math.random() * max);
+}
+function Rectangle(x, y, width, height) {
+    this.x = (x == null) ? 0 : x;
+    this.y = (y == null) ? 0 : y;
+    this.width = (width == null) ? 0 : width;
+    this.height = (height == null) ? this.width : height;
+
+    this.intersects = function (rect) {
+        if (rect == null) {
+            window.console.warn('Missing parameters on function intersects');
+        } else {
+            return (this.x < rect.x + rect.width &&
+                this.x + this.width > rect.x &&
+                this.y < rect.y + rect.height &&
+                this.y + this.height > rect.y);
+        }
+    };
+
+    this.fill = function (ctx) {
+        if (ctx == null) {
+            window.console.warn('Missing parameters on function fill');
+        } else {
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+        }
+    };
+}
 
 function act(){
     if (!pause) {
@@ -36,30 +64,35 @@ function act(){
 
         // Move Rect
         if (dir == 0) {
-            y -= 10;
+            player.y -= 10;
         }
         if (dir == 1) {
-            x += 10;
+            player.x += 10;
         }
         if (dir == 2) {
-            y += 10;
+            player.y += 10;
         }
         if (dir == 3) {
-            x -= 10;
+            player.x -= 10;
         }
 
         // Out Screen
-        if (x > canvas.width) {
-            x = 0;
+        if (player.x > canvas.width) {
+            player.x = 0;
         }
-        if (y > canvas.height) {
-            y = 0;
+        if (player.y > canvas.height) {
+            player.y = 0;
         }
-        if (x < 0) {
-            x = canvas.width;
+        if (player.x < 0) {
+            player.x = canvas.width;
         }
-        if (y < 0) {
-            y = canvas.height;
+        if (player.y < 0) {
+            player.y = canvas.height;
+        }
+        if (player.intersects(food)) {
+            score += 1;
+            food.x = random(canvas.width / 10 - 1) * 10;
+            food.y = random(canvas.height / 10 - 1) * 10;
         }
     }
     
@@ -70,15 +103,29 @@ function act(){
     }
 }
 function paint(ctx) {
+    // Clean canvas
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
+    // Draw player
     ctx.fillStyle = '#0f0';
-    ctx.fillRect(x, y, 10, 10);
+    player.fill(ctx);
+    
+    // Draw food
+    ctx.fillStyle = '#f00';
+    food.fill(ctx);
 
+    // Debug last key pressed
+    ctx.fillStyle = '#fff';
+    //ctx.fillText('Last Press: '+lastPress,0,20);
+    
+    // Draw score
+    ctx.fillText('Score: ' + score, 0, 10);
+    
+    // Draw pause
     if (pause) {
         ctx.textAlign = 'center';
-        ctx.fillText('PAUSE', canvas.width / 2, canvas.height / 2  );
+        ctx.fillText('PAUSE', canvas.width/2, canvas.height/2);
         ctx.textAlign = 'left';
     }
 }
@@ -96,6 +143,9 @@ function run() {
 function init() {
     canvas = document.getElementById('canvas');
     ctx = canvas.getContext('2d');
+    player = new Rectangle(40, 40, 10, 10);
+    food = new Rectangle(80, 80, 10, 10);
+    
     run();
     repaint();
 }
