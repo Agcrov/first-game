@@ -1,40 +1,55 @@
+/*jslint bitwise:true, es5: true */
+
 var KEY_ENTER = 13,
     KEY_LEFT = 37,
     KEY_UP = 38,
     KEY_RIGHT = 39,
     KEY_DOWN = 40,
     
-    canvas = null,
+    canvas = undefined,
     iBody = new Image(),
     iFood = new Image(),
     aEat = new Audio(),
     aDie = new Audio(),
-    ctx = null,
-    lastPress = null,
+    ctx = undefined,
+    lastPress = undefined,
     pause = true,
-    body = new Array(),
-    food = null,
+    body = [],
+    food = undefined,
     gameover = false,
     score = 0,
     dir = 0;
 
 var wall = new Array();
 
+function canPlayOgg() {
+    var aud = new Audio();
+    if (aud.canPlayType('audio/ogg').replace(/no/, '')) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 document.addEventListener('keydown', evt => {
     lastPress = evt.which;
 }, false);
 
 function random(max) {
-    return Math.floor(Math.random() * max);
+    return ~~(Math.random() * max);
 }
 function Rectangle(x, y, width, height) {
-    this.x = (x == null) ? 0 : x;
-    this.y = (y == null) ? 0 : y;
-    this.width = (width == null) ? 0 : width;
-    this.height = (height == null) ? this.width : height;
+    this.x = (x === undefined) ? 0 : x;
+    this.y = (y === undefined) ? 0 : y;
+    this.width = (width === undefined) ? 0 : width;
+    this.height = (height === undefined) ? this.width : height;
+}
 
-    this.intersects = function (rect) {
-        if (rect == null) {
+Rectangle.prototype = {
+    constructor: Rectangle,
+    
+    intersects: function (rect) {
+        if (rect === undefined) {
             window.console.warn('Missing parameters on function intersects');
         } else {
             return (this.x < rect.x + rect.width &&
@@ -42,16 +57,28 @@ function Rectangle(x, y, width, height) {
                 this.y < rect.y + rect.height &&
                 this.y + this.height > rect.y);
         }
-    };
-
-    this.fill = function (ctx) {
-        if (ctx == null) {
+    },
+    
+    fill: function (ctx) {
+        if (ctx === undefined) {
             window.console.warn('Missing parameters on function fill');
         } else {
             ctx.fillRect(this.x, this.y, this.width, this.height);
         }
-    };
-}
+    },
+    
+    drawImage: function (ctx, img) {
+        if (img === undefined) {
+            window.console.warn('Missing parameters on function drawImage');
+        } else {
+            if (img.width) {
+                ctx.drawImage(img, this.x, this.y);
+            } else {
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
+            }
+        }
+    }
+};
 
 function act(){
     if (!pause) {
@@ -64,30 +91,30 @@ function act(){
             body[i].y = body[i - 1].y;
         }
         // Change Direction
-        if (lastPress == KEY_UP) {
+        if (lastPress === KEY_UP) {
             dir = 0;
         }
-        if (lastPress == KEY_RIGHT) {
+        if (lastPress === KEY_RIGHT) {
             dir = 1;
         }
-        if (lastPress == KEY_DOWN) {
+        if (lastPress === KEY_DOWN) {
             dir = 2;
         }
-        if (lastPress == KEY_LEFT) {
+        if (lastPress === KEY_LEFT) {
             dir = 3;
         }
 
         // Move Rect
-        if (dir == 0) {
+        if (dir === 0) {
             body[0].y -= 10;
         }
-        if (dir == 1) {
+        if (dir === 1) {
             body[0].x += 10;
         }
-        if (dir == 2) {
+        if (dir === 2) {
             body[0].y += 10;
         }
-        if (dir == 3) {
+        if (dir === 3) {
             body[0].x -= 10;
         }
        
@@ -137,9 +164,9 @@ function act(){
     }
     
     // Pause/Unpause
-    if (lastPress == KEY_ENTER) {
+    if (lastPress === KEY_ENTER) {
         pause = !pause;
-        lastPress = null;
+        lastPress = undefined;
     }
 }
 function paint(ctx) {
@@ -149,11 +176,11 @@ function paint(ctx) {
     
     // Draw body[0]
     for (i = 0, l = body.length; i < l; i += 1) {
-        ctx.drawImage(iBody, body[i].x, body[i].y);
+        body[i].drawImage(ctx,iBody);
     }
     
     // Draw food
-    ctx.drawImage(iFood, food.x, food.y);
+    food.drawImage(ctx, iFood);
 
     // Debug last key pressed
     ctx.fillStyle = '#fff';
@@ -192,10 +219,16 @@ function run() {
 function init() {
     canvas = document.getElementById('canvas');
     ctx = canvas.getContext('2d');
+
+    if (canPlayOgg()) {
+        aEat.src = 'assets/chomp.oga';
+        aDie.src = 'assets/dies.oga';
+    } else {
+        aDie.src = 'assets/dies.m4a';
+        aEat.src = "assets/chomp.m4a";
+    }
     iBody.src = 'assets/body.png';
     iFood.src = 'assets/fruit.png';
-    aEat.src = 'assets/chomp.oga';
-    aDie.src = 'assets/dies.oga';
 
     food = new Rectangle(80, 80, 10, 10);
     body.length = 0;
