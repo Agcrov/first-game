@@ -15,12 +15,49 @@ var KEY_ENTER = 13,
     lastPress = undefined,
     pause = true,
     body = [],
+    lvls = [],
+    actualLvl = undefined,
     food = undefined,
     gameover = false,
     score = 0,
     dir = 0;
 
-var wall = new Array();
+var wall = [];
+var lvl1walls = [];
+lvl1walls.push([400-150,400+150,150,0]);
+lvl1walls.push([400-150,400+150,450,0]);
+lvl1walls.push([100,500,100,1]);
+lvl1walls.push([100,500,700,1]);
+  
+var lvl1 = new Level(0,2,lvl1walls);
+lvls.push(lvl1);
+
+var lvl2walls = [];
+lvl2walls.push([400-200,400+200,100,0]);
+lvl2walls.push([400-200,400+200,200,0]);
+lvl2walls.push([400-200,400+200,300,0]);
+lvl2walls.push([400-200,400+200,400,0]);
+var lvl2 = new Level(3, 5, lvl2walls);
+lvls.push(lvl2);
+
+var lvl3walls = [];
+lvl3walls.push([400-150,400+150,150,0]);
+lvl3walls.push([400-150,400+150,450,0]);
+lvl3walls.push([100,500,100,1]);
+lvl3walls.push([100,500,700,1]);
+var lvl3 = new Level(6, 8, lvl3walls);
+lvls.push(lvl3);
+
+function horizontalWalls(a,b,c){
+    for(var start = a; start <= b; start +=1){
+        wall.push(new Rectangle(start,c,10,10));
+    }
+}
+function verticalWalls(a,b,c){
+    for(var start = a; start <= b; start +=1){
+        wall.push(new Rectangle(c,start,10,10));
+    }
+}
 
 function canPlayOgg() {
     var aud = new Audio();
@@ -37,6 +74,32 @@ document.addEventListener('keydown', evt => {
 
 function random(max) {
     return ~~(Math.random() * max);
+}
+// wallsArray should have initial point, ending point, constant value and orientation
+function Level(minScore,maxScore, wallsArray = [0,0,0,0]){
+    this.minScore = minScore;
+    if (this.minScore === undefined) {
+        window.console.warn('Missing parameters on level structure');
+    } 
+    this.maxScore = maxScore;
+    if (this.maxScore === undefined) {
+        window.console.warn('Missing parameters on level structure');
+    }
+    this.wallsArray = wallsArray;
+}
+Level.prototype = {
+    constructor: Level,
+    draw: function() {
+        if (this.wallsArray === undefined || this.wallsArray.length === 0) {
+            window.console.warn('Missing parameters on level structure');
+        } else{
+            this.wallsArray.forEach((array) =>{
+                wall = []
+                (array[3] === 0) ? horizontalWalls(array[0],array[1],array[2]): verticalWalls(array[0],array[1],array[2]);    
+            });
+        }
+    }
+    
 }
 function Rectangle(x, y, width, height) {
     this.x = (x === undefined) ? 0 : x;
@@ -82,27 +145,39 @@ Rectangle.prototype = {
 
 function act(){
     if (!pause) {
+        console.log(gameover,pause);
         if (gameover) {
             reset();
         }
+        if(score === actualLvl.maxScore){
+            pause = !pause;
+            actualLvl = lvls[lvls.indexOf(actualLvl)+1];
+            wall = [];
+            for (var i = 0; i < actualLvl.wallsArray.length; i++) {
+                const wallLine = actualLvl.wallsArray[i];
+                (wallLine[3] === 0) ? horizontalWalls(wallLine[0],wallLine[1],wallLine[2]): verticalWalls(wallLine[0],wallLine[1],wallLine[2]);
+            }
+        }
+
         // Move Body
         for (i = body.length - 1; i > 0; i -= 1) {
             body[i].x = body[i - 1].x;
             body[i].y = body[i - 1].y;
         }
         // Change Direction
-        if (lastPress === KEY_UP) {
+        if (lastPress === KEY_UP && dir !== 2) {
             dir = 0;
         }
-        if (lastPress === KEY_RIGHT) {
+        if (lastPress === KEY_RIGHT && dir !== 3) {
             dir = 1;
         }
-        if (lastPress === KEY_DOWN) {
+        if (lastPress === KEY_DOWN && dir !== 0) {
             dir = 2;
         }
-        if (lastPress === KEY_LEFT) {
+        if (lastPress === KEY_LEFT && dir !== 1) {
             dir = 3;
         }
+        
 
         // Move Rect
         if (dir === 0) {
@@ -188,8 +263,10 @@ function paint(ctx) {
     
     // Draw score
     ctx.fillText('Score: ' + score, 0, 10);
+    ctx.fillText('Level: ' + (lvls.indexOf(actualLvl)+1), 0, 20);
 
     ctx.fillStyle = '#999';
+    
     for (i = 0, l = wall.length; i < l; i += 1) {
         wall[i].fill(ctx);
     }
@@ -235,20 +312,19 @@ function init() {
     body.push(new Rectangle(40, 40, 10, 10));
     body.push(new Rectangle(0, 0, 10, 10));
     body.push(new Rectangle(0, 0, 10, 10));
-
-
-
-    wall.push(new Rectangle(100, 50, 10, 10));
-    wall.push(new Rectangle(100, 100, 10, 10));
-    wall.push(new Rectangle(200, 50, 10, 10));
-    wall.push(new Rectangle(200, 100, 10, 10));
-    
+    actualLvl = lvls[0]; 
+    wall = [];
+    for (var i = 0; i < actualLvl.wallsArray.length; i++) {
+        const wallLine = actualLvl.wallsArray[i];
+        (wallLine[3] === 0) ? horizontalWalls(wallLine[0],wallLine[1],wallLine[2]): verticalWalls(wallLine[0],wallLine[1],wallLine[2]);
+    }  
     run();
     repaint();
 }
 function reset() {
     score = 0;
     dir = 1;
+    actualLvl = lvls[0];    
 
     body.length = 0;
     body.push(new Rectangle(40, 40, 10, 10));
@@ -261,5 +337,4 @@ function reset() {
     food.y = random(canvas.height / 10 - 1) * 10;
     gameover = false;
 }
-
 window.addEventListener('load', init, false);
